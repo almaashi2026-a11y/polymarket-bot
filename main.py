@@ -1,16 +1,23 @@
 import requests
 import time
+import os
 from telegram import Bot
 
 # --- الإعدادات ---
-# ملاحظة: ضع الـ Token والـ Chat ID الخاصين بك هنا
-TELEGRAM_TOKEN = "AAHwM-h4Pi7taJNVQZvLbma-5Id9BaJ5X6Y"
-CHAT_ID = "8524780143"
-bot = Bot(token=TELEGRAM_TOKEN)
+# يتم جلب التوكن والآيدي من إعدادات البيئة (Environment Variables) في Render
+TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+CHAT_ID = os.environ.get('CHAT_ID')
+
+# إنشاء كائن البوت فقط إذا كانت المتغيرات موجودة
+if TELEGRAM_TOKEN and CHAT_ID:
+    bot = Bot(token=TELEGRAM_TOKEN)
+else:
+    print("خطأ: يرجى التأكد من إضافة TELEGRAM_TOKEN و CHAT_ID في إعدادات Render.")
 
 def send_alert(message):
     try:
-        bot.send_message(chat_id=CHAT_ID, text=message)
+        if TELEGRAM_TOKEN and CHAT_ID:
+            bot.send_message(chat_id=CHAT_ID, text=message)
     except Exception as e:
         print(f"خطأ في إرسال التليجرام: {e}")
 
@@ -20,7 +27,6 @@ def check_market():
         response = requests.get(url)
         markets = response.json()
         
-        # قائمة لتجميع الأسواق المطابقة في هذه الدورة
         matches = []
         
         for market in markets:
@@ -34,7 +40,6 @@ def check_market():
         
         # إرسال تقرير مجمع إذا وُجدت نتائج
         if matches:
-            # دمج النتائج في رسالة واحدة
             final_message = "🚨 **فرص تداول جديدة (فحص كل 10 دقائق):**\n\n" + "\n".join(matches)
             send_alert(final_message)
             print(f"تم إرسال {len(matches)} فرصة جديدة.")

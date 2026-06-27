@@ -3,66 +3,119 @@ import time
 import os
 import threading
 from flask import Flask
-from telegram import Bot
 
-# --- إعداد Flask لإرضاء Render ---
+# -----------------------------
+# Flask (لإبقاء Render يعمل)
+# -----------------------------
 app = Flask(__name__)
 
-@app.route('/')
+@app.route("/")
 def home():
     return "Bot is running!"
 
 def run_web_server():
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
-# --- إعدادات البوت ---
-TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
-CHAT_ID = os.environ.get('CHAT_ID')
+# -----------------------------
+# إعدادات تيليجرام
+# -----------------------------
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
 
-if TELEGRAM_TOKEN and CHAT_ID:
-    bot = Bot(token=TELEGRAM_TOKEN)
-else:
-    print("خطأ: يرجى التأكد من إضافة TELEGRAM_TOKEN و CHAT_ID في إعدادات Render.")
+if not TELEGRAM_TOKEN:
+    print("❌ TELEGRAM_TOKEN غير موجود")
+if not CHAT_ID:
+    print("❌ CHAT_ID غير موجود")
 
+# -----------------------------
+# إرسال رسالة تيليجرام
+# -----------------------------
 def send_alert(message):
     try:
-        if TELEGRAM_TOKEN and CHAT_ID:
-            # استخدام async هنا سيتطلب تعديلات أكبر، لذا نستخدم الطلبات المباشرة
-            requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage", 
-                          data={"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"})
-    except Exception as e:
-        print(f"خطأ في إرسال التليجرام: {e}")
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
+        response = requests.post(
+            url,
+            data={
+                "chat_id": CHAT_ID,
+                "text": message,
+                "parse_mode": "Markdown"
+            },
+            timeout=20
+        )
+
+        print("Telegram:", response.text)
+
+    except Exception as e:
+        print("خطأ في إرسال الرسالة:", e)
+
+# -----------------------------
+# فحص الأسواق
+# -----------------------------
 def check_market():
-    url = "https://gamma-api.polymarket.com/markets?active=true"
     try:
-        response = requests.get(url)
+        url = "https://gamma-api.polymarket.com/markets?active=true"
+
+        response = requests.get(url, timeout=20)
         markets = response.json()
-        
+
         matches = []
+
         for market in markets:
-            price = float(market.get('lastTradePrice', 0))
-            if 0.20 <= price <= 10.0:
-                question = market.get('question')
-                matches.append(f"• {question} | السعر: {price:.2f}$")
-        
+
+            try:
+                price = float(market.get("lastTradePrice", 0))
+            except:
+                continue
+
+            if 0.20 <= price <= 10:
+
+                question = market.get("question", "Unknown")
+
+                matches.append(
+                    f"• {question}\nالسعر: ${price:.2f}"
+                )
+
         if matches:
-            final_message = "🚨 **فرص تداول جديدة:**\n\n" + "\n".join(matches[:10]) # تقليل العدد لتجنب مشاكل الطول
-            send_alert(final_message)
-            print(f"تم إرسال {len(matches)} فرصة.")
+
+            message = "🚨 فرص جديدة:\n\n"
+
+            message += "\n\n".join(matches[:10])
+
+            send_alert(message)
+
+            print("تم إرسال رسالة")
+
+        else:
+            print("لا توجد فرص")
+
     except Exception as e:
-        print(f"حدث خطأ أثناء الاتصال: {e}")
+        print("خطأ:", e)
 
+# -----------------------------
+# تشغيل البوت
+# -----------------------------
 def run_bot():
-    print("الروبوت يعمل الآن...")
-    send_alert("✅ البوت بدأ العمل بنجاح على Render")
-    while True:
-        check_market()
-        time.sleep(600)
 
-def run_bot():
-    print("الروبوت يعمل الآن...")
+    print("✅ الروبوت يعمل الآن")
+
     send_alert("✅ تم تشغيل البوت بنجاح على Render")
+
     while True:
+
+        check_market()
+
         time.sleep(600)
+
+# -----------------------------
+# Main
+# -----------------------------
+if __name__ == "__main__":
+
+    threading.Thread(
+        target=run_web_server,
+        daemon=True
+    ).start()
+
+    run_bot()

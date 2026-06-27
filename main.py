@@ -56,6 +56,7 @@ def check_market():
 
 def run_bot():
     print("الروبوت يعمل الآن...")
+    send_alert("✅ البوت بدأ العمل بنجاح على Render")
     while True:
         check_market()
         time.sleep(600)

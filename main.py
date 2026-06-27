@@ -60,11 +60,8 @@ def run_bot():
         check_market()
         time.sleep(600)
 
-if __name__ == "__main__":
-    # تشغيل خادم الويب في Thread منفصل
-    web_thread = threading.Thread(target=run_web_server)
-    web_thread.start()
-    
-    # تشغيل البوت
-    run_bot()
-    
+def run_bot():
+    print("الروبوت يعمل الآن...")
+    send_alert("✅ تم تشغيل البوت بنجاح على Render")
+    while True:
+        time.sleep(600)

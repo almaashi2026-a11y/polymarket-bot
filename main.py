@@ -1,14 +1,25 @@
 import requests
 import time
 import os
+import threading
+from flask import Flask
 from telegram import Bot
 
-# --- الإعدادات ---
-# يتم جلب التوكن والآيدي من إعدادات البيئة (Environment Variables) في Render
+# --- إعداد Flask لإرضاء Render ---
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run_web_server():
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
+
+# --- إعدادات البوت ---
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 
-# إنشاء كائن البوت فقط إذا كانت المتغيرات موجودة
 if TELEGRAM_TOKEN and CHAT_ID:
     bot = Bot(token=TELEGRAM_TOKEN)
 else:
@@ -17,7 +28,9 @@ else:
 def send_alert(message):
     try:
         if TELEGRAM_TOKEN and CHAT_ID:
-            bot.send_message(chat_id=CHAT_ID, text=message)
+            # استخدام async هنا سيتطلب تعديلات أكبر، لذا نستخدم الطلبات المباشرة
+            requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage", 
+                          data={"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"})
     except Exception as e:
         print(f"خطأ في إرسال التليجرام: {e}")
 
@@ -28,31 +41,30 @@ def check_market():
         markets = response.json()
         
         matches = []
-        
         for market in markets:
-            # استخراج السعر
             price = float(market.get('lastTradePrice', 0))
-            
-            # الفلترة: نطاق السعر (0.20$ - 10$)
             if 0.20 <= price <= 10.0:
                 question = market.get('question')
                 matches.append(f"• {question} | السعر: {price:.2f}$")
         
-        # إرسال تقرير مجمع إذا وُجدت نتائج
         if matches:
-            final_message = "🚨 **فرص تداول جديدة (فحص كل 10 دقائق):**\n\n" + "\n".join(matches)
+            final_message = "🚨 **فرص تداول جديدة:**\n\n" + "\n".join(matches[:10]) # تقليل العدد لتجنب مشاكل الطول
             send_alert(final_message)
-            print(f"تم إرسال {len(matches)} فرصة جديدة.")
-        else:
-            print("لا توجد فرص مطابقة في هذه الدورة.")
-                
+            print(f"تم إرسال {len(matches)} فرصة.")
     except Exception as e:
         print(f"حدث خطأ أثناء الاتصال: {e}")
 
-if __name__ == "__main__":
-    print("الروبوت يعمل الآن ويراقب الأسواق كل 10 دقائق...")
+def run_bot():
+    print("الروبوت يعمل الآن...")
     while True:
         check_market()
-        # النوم لمدة 600 ثانية (أي 10 دقائق)
         time.sleep(600)
-        
+
+if __name__ == "__main__":
+    # تشغيل خادم الويب في Thread منفصل
+    web_thread = threading.Thread(target=run_web_server)
+    web_thread.start()
+    
+    # تشغيل البوت
+    run_bot()
+    

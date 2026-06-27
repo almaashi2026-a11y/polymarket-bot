@@ -1,24 +1,34 @@
 import requests
 import time
 
-# هذا الرابط لجلب بيانات السوق العامة من Polymarket
-API_URL = "https://gamma-api.polymarket.com/markets?active=true"
-
 def check_market_status():
+    # الرابط لجلب الأسواق النشطة
+    url = "https://gamma-api.polymarket.com/markets?active=true"
+    
     try:
-        response = requests.get(API_URL)
+        response = requests.get(url)
         markets = response.json()
         
-        # هنا سنقوم لاحقاً بإضافة الحسابات الرياضية للمؤشر
-        for market in markets[:3]: # فحص أول 3 أسواق كمثال
-            print(f"فحص السوق: {market.get('question')}")
-            # هنا ستتم إضافة منطق VWAP و EMA9
+        print("--- بدء فحص الأسواق (النطاق: 0.20$ - 10.00$) ---")
+        found_count = 0
+        
+        for market in markets:
+            # استخراج السعر وتحويله لنوع رقمي
+            price_str = market.get('lastTradePrice', '0')
+            price = float(price_str)
+            
+            # فلترة الأسواق بناءً على طلبك
+            if 0.20 <= price <= 10.0:
+                print(f"سوق مناسب: {market.get('question')} | السعر: {price:.2f}")
+                found_count += 1
+        
+        if found_count == 0:
+            print("لم يتم العثور على أسواق في هذا النطاق حالياً.")
             
     except Exception as e:
-        print(f"حدث خطأ: {e}")
+        print(f"حدث خطأ أثناء الاتصال: {e}")
 
-# حلقة تكرار بسيطة تجعل البوت يعمل باستمرار
 if __name__ == "__main__":
-    while True:
-        check_market_status()
-        time.sleep(60) # الروبوت يفحص السوق كل دقيقة
+    # تشغيل الفحص
+    check_market_status()
+    

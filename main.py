@@ -1,17 +1,24 @@
-# هذا هو أول كود لاختبار الاتصال بمنصة Polymarket
 import requests
+import time
 
-def test_connection():
-    url = "https://gamma-api.polymarket.com/events"
+# هذا الرابط لجلب بيانات السوق العامة من Polymarket
+API_URL = "https://gamma-api.polymarket.com/markets?active=true"
+
+def check_market_status():
     try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            print("نجاح: تم الاتصال بنجاح بـ Polymarket!")
-        else:
-            print(f"فشل الاتصال: كود الحالة {response.status_code}")
+        response = requests.get(API_URL)
+        markets = response.json()
+        
+        # هنا سنقوم لاحقاً بإضافة الحسابات الرياضية للمؤشر
+        for market in markets[:3]: # فحص أول 3 أسواق كمثال
+            print(f"فحص السوق: {market.get('question')}")
+            # هنا ستتم إضافة منطق VWAP و EMA9
+            
     except Exception as e:
         print(f"حدث خطأ: {e}")
 
+# حلقة تكرار بسيطة تجعل البوت يعمل باستمرار
 if __name__ == "__main__":
-    test_connection()
-  
+    while True:
+        check_market_status()
+        time.sleep(60) # الروبوت يفحص السوق كل دقيقة

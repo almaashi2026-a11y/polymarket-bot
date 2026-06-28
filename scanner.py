@@ -1,41 +1,29 @@
 from symbols import SYMBOLS
+from market_finnhub import get_candidates
 from market import get_quote
-from score import calculate_score
+from score import calculate_score, passes_entry_filter
+from alerts import filter_new_alerts
 
 
 def scan_market():
+    candidates = get_candidates(SYMBOLS)
+    print(f"🔎 Stage 1 (Finnhub): {len(candidates)} مرشح من أصل {len(SYMBOLS)} رمز")
 
-    results = []
+    qualified = []
 
-    for symbol in SYMBOLS:
-
+    for symbol in candidates:
         stock = get_quote(symbol)
-
         if not stock:
             continue
 
-        checks = {
+        if not passes_entry_filter(stock):
+            continue
 
-            "vwap": stock["change_percent"] > 2,
+        stock["score"] = calculate_score(stock)
+        qualified.append(stock)
 
-            "volume": stock["price"] > 1,
+    qualified.sort(key=lambda x: x["score"], reverse=True)
 
-            "rvol": stock["change_percent"] > 1,
+    new_alerts = filter_new_alerts(qualified)
 
-            "atr": stock["high"] > stock["low"],
-
-            "trend": stock["price"] > stock["previous_close"],
-
-            "breakout": stock["change_percent"] > 3
-
-        }
-
-        score = calculate_score(checks)
-
-        stock["score"] = score
-
-        results.append(stock)
-
-    results.sort(key=lambda x: x["score"], reverse=True)
-
-    return results
+    return qualified, new_alerts

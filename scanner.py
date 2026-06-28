@@ -1,20 +1,20 @@
-from scanner import get_stock_price
-from telegram_bot import send_message
+import requests
+from config import FINNHUB_API_KEY
 
-stock = get_stock_price("NVDA")
+BASE_URL = "https://finnhub.io/api/v1"
 
-if stock:
-    message = f"""
-✅ Finnhub متصل
+def get_stock_price(symbol):
 
-السهم: {stock['symbol']}
-السعر: ${stock['price']}
-أعلى سعر: ${stock['high']}
-أقل سعر: ${stock['low']}
-"""
+    url = f"{BASE_URL}/quote?symbol={symbol}&token={FINNHUB_API_KEY}"
 
-    print(message)
-    send_message(message)
+    response = requests.get(url)
+    data = response.json()
 
-else:
-    print("فشل الاتصال بـ Finnhub")
+    return {
+        "symbol": symbol,
+        "price": data["c"],
+        "high": data["h"],
+        "low": data["l"],
+        "open": data["o"],
+        "previous_close": data["pc"]
+    }

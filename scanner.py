@@ -1,20 +1,41 @@
-import requests
-from config import FINNHUB_API_KEY
+from symbols import SYMBOLS
+from market import get_quote
+from score import calculate_score
 
-BASE_URL = "https://finnhub.io/api/v1"
 
-def get_stock_price(symbol):
+def scan_market():
 
-    url = f"{BASE_URL}/quote?symbol={symbol}&token={FINNHUB_API_KEY}"
+    results = []
 
-    response = requests.get(url)
-    data = response.json()
+    for symbol in SYMBOLS:
 
-    return {
-        "symbol": symbol,
-        "price": data["c"],
-        "high": data["h"],
-        "low": data["l"],
-        "open": data["o"],
-        "previous_close": data["pc"]
-    }
+        stock = get_quote(symbol)
+
+        if not stock:
+            continue
+
+        checks = {
+
+            "vwap": stock["change_percent"] > 2,
+
+            "volume": stock["price"] > 1,
+
+            "rvol": stock["change_percent"] > 1,
+
+            "atr": stock["high"] > stock["low"],
+
+            "trend": stock["price"] > stock["previous_close"],
+
+            "breakout": stock["change_percent"] > 3
+
+        }
+
+        score = calculate_score(checks)
+
+        stock["score"] = score
+
+        results.append(stock)
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+
+    return results

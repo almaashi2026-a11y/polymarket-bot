@@ -1,0 +1,22 @@
+SYMBOLS = [
+    "NVDA",
+    "AMD",
+    "AAPL",
+    "MSFT",
+    "AMZN",
+    "META",
+    "TSLA",
+    "PLTR",
+    "SOFI",
+    "RKLB",
+    "IONQ",
+    "SOUN",
+    "BBAI",
+    "RGTI",
+    "QBTS",
+    "SMCI",
+    "ARM",
+    "AVGO",
+    "MSTR",
+    "HIMS"
+]

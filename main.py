@@ -1,5 +1,5 @@
-import threading
 import os
+import threading
 from flask import Flask
 
 from scanner import get_stock_price
@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Scanner is running!"
+    return "NASDAQ Scanner is running!"
 
 def run_web_server():
     port = int(os.environ.get("PORT", 10000))
@@ -29,8 +29,7 @@ def run_bot():
 
     if stock:
 
-        message = f"""
-✅ Finnhub متصل
+        message = f"""✅ Finnhub متصل
 
 السهم: {stock['symbol']}
 السعر: ${stock['price']}
@@ -39,7 +38,6 @@ def run_bot():
 """
 
         print(message)
-
         send_message(message)
 
 # -----------------------------
